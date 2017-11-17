@@ -333,7 +333,7 @@ bool robotMove(int n_players){
 			} else if (players[n_players].dominoPieces[n_dominoPieces].left_number == (int)table[leftTip[0]][leftTip[1]][sideLeftTip] - 48){
 					if(n_dominoPieceMax == -1) {
 						n_dominoPieceMax = n_dominoPieces;
-						tableSide = RIGHT_SIDE;
+						tableSide = LEFT_SIDE;
 					} else if (players[n_players].dominoPieces[n_dominoPieces].left_number > players[n_players].dominoPieces[n_dominoPieceMax].left_number) {
 							n_dominoPieceMax = n_dominoPieces;
 							tableSide = LEFT_SIDE;
