@@ -2,6 +2,7 @@
 #include <string>
 #include <stdlib.h>
 #include <vector>
+#include <unistd.h>
 using namespace std;
 
 struct DominoPiece {
@@ -256,7 +257,98 @@ void countScores(){
 
 }
 bool robotMove(int n_players){
-
+  int sideRightTip;
+	int sideLeftTip;
+	if (rightTip[0] == 2){
+		sideRightTip = 1;
+	} else {
+		sideRightTip = 3;
+	}
+	if (leftTip[0] == 0){
+		sideLeftTip = 3;
+	} else {
+		sideLeftTip = 1;
+	}
+	string tableSide;
+	int n_dominoPieceMax = -1;
+	bool result = false;
+	cout << players[n_players].name << ": " << endl;
+	cout << "Bot realizando jogada..." << endl;
+	sleep(5);
+	if(!hasPieces(n_players)){
+	
+		cout << "Passo a vez..." << endl;
+		result = true;
+	} else {
+		for (int n_dominoPieces = 0; n_dominoPieces < players[n_players].dominoPieces.size(); n_dominoPieces++){
+			 if ((players[n_players].dominoPieces[n_dominoPieces].right_number == (int)table[rightTip[0]][rightTip[1]][sideRightTip] - 48) && 
+			 (players[n_players].dominoPieces[n_dominoPieces].left_number == (int)table[rightTip[0]][rightTip[1]][sideRightTip] - 48)){
+				 if(n_dominoPieceMax == -1) {
+					n_dominoPieceMax = n_dominoPieces;
+					tableSide = RIGHT_SIDE;
+				} else if (players[n_players].dominoPieces[n_dominoPieces].left_number >
+				 players[n_players].dominoPieces[n_dominoPieceMax].left_number) {
+					n_dominoPieceMax = n_dominoPieces;
+					tableSide = RIGHT_SIDE;
+				}
+			 }
+			 if ((players[n_players].dominoPieces[n_dominoPieces].right_number == (int)table[leftTip[0]][leftTip[1]][sideLeftTip] - 48) && 
+			(players[n_players].dominoPieces[n_dominoPieces].left_number == (int)table[leftTip[0]][leftTip[1]][sideLeftTip] - 48)){
+				if(n_dominoPieceMax == -1) {
+					n_dominoPieceMax = n_dominoPieces;
+					tableSide = LEFT_SIDE;
+				} else if (players[n_players].dominoPieces[n_dominoPieces].left_number >
+				 players[n_players].dominoPieces[n_dominoPieceMax].left_number) {
+					n_dominoPieceMax = n_dominoPieces;
+					tableSide = LEFT_SIDE;
+				}
+			}
+		}
+		if(n_dominoPieceMax == -1) {
+			for (int n_dominoPieces = 0; n_dominoPieces < players[n_players].dominoPieces.size(); n_dominoPieces++){
+				if (players[n_players].dominoPieces[n_dominoPieces].right_number == (int)table[rightTip[0]][rightTip[1]][sideRightTip] - 48){
+					if(n_dominoPieceMax == -1) {
+						n_dominoPieceMax = n_dominoPieces;
+						tableSide = RIGHT_SIDE;
+					} else if (players[n_players].dominoPieces[n_dominoPieces].right_number > players[n_players].dominoPieces[n_dominoPieceMax].right_number){
+							n_dominoPieceMax = n_dominoPieces;
+							tableSide = RIGHT_SIDE;
+					}
+			} else if (players[n_players].dominoPieces[n_dominoPieces].left_number == (int)table[rightTip[0]][rightTip[1]][sideRightTip] - 48){
+					if(n_dominoPieceMax == -1) {
+						n_dominoPieceMax = n_dominoPieces;
+						tableSide = RIGHT_SIDE;
+					} else if (players[n_players].dominoPieces[n_dominoPieces].left_number > players[n_players].dominoPieces[n_dominoPieceMax].left_number){
+							n_dominoPieceMax = n_dominoPieces;
+							tableSide = RIGHT_SIDE;
+					}
+			} else if (players[n_players].dominoPieces[n_dominoPieces].right_number == (int)table[leftTip[0]][leftTip[1]][sideLeftTip] - 48){
+					if(n_dominoPieceMax == -1) {
+						n_dominoPieceMax = n_dominoPieces;
+						tableSide = LEFT_SIDE;
+					} else if (players[n_players].dominoPieces[n_dominoPieces].right_number > players[n_players].dominoPieces[n_dominoPieceMax].right_number) {
+							n_dominoPieceMax = n_dominoPieces;
+							tableSide = LEFT_SIDE;
+					}
+			} else if (players[n_players].dominoPieces[n_dominoPieces].left_number == (int)table[leftTip[0]][leftTip[1]][sideLeftTip] - 48){
+					if(n_dominoPieceMax == -1) {
+						n_dominoPieceMax = n_dominoPieces;
+						tableSide = LEFT_SIDE;
+					} else if (players[n_players].dominoPieces[n_dominoPieces].left_number > players[n_players].dominoPieces[n_dominoPieceMax].left_number) {
+							n_dominoPieceMax = n_dominoPieces;
+							tableSide = LEFT_SIDE;
+					}
+			}
+			}
+		}
+		if(insertTable(players[n_players].dominoPieces[n_dominoPieceMax], tableSide)){
+				deleteHandPiece(n_players, (n_dominoPieceMax));
+				if (players[n_players].dominoPieces.size() == 0 ) {
+				finishGame = true;
+				}
+		}
+	}
+	return result;
 }
 
 
