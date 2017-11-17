@@ -65,7 +65,12 @@ void openMenu() {
 
     int option;
     cin >> option;
-
+  
+    while (option < 0 || option > 1) {
+        cout << "\nOpção inválida.\n";
+        cout << "Digite a opção desejada: ";
+        cin >> option;
+    }
     switch (option) {
         case 1:
             cout << "\nJOGO INICIADO.\n";
@@ -74,7 +79,7 @@ void openMenu() {
         case 0:
             cout << "\nATÉ MAIS.\n";
             break;
-    }
+    }        
 }
 
 void startGame() {
@@ -96,7 +101,7 @@ void startGame() {
         cin >> players[n].name;
         players[n].isRobot = false;
     }
-
+    
     for (int n = totalHumanPlayers, aux = totalHumanPlayers +1; n < 4; n++, aux++) {
         players[n].name = "Jogador " + to_string(aux);
     }
@@ -127,7 +132,6 @@ void firstMove(){
                 insertTable(players[n_players].dominoPieces[n_dominoPieces], sideTable);
                 deleteHandPiece(n_players, n_dominoPieces);
                 cout << endl;
-                showTable();
                 nextMove(n_players + 1 % TOTAL_PLAYERS, 0);
              }
 
@@ -160,6 +164,7 @@ void nextMove(int n_players, int n_passedMoves){
     } else {
         if (finishGame){
             cout << players[(n_players - 1) % TOTAL_PLAYERS].name << " é o vencedor!!!" << endl;
+            openMenu();
         } else if (n_passedMoves == 4){
             cout << endl << "Empate por enquanto! :D" << endl;
             countScores();
@@ -212,7 +217,7 @@ bool humanMove(int n_players){
         string tableSide; //l or r
         int pieceNumber;
 
-        cout << " Digite o número da peça seguido de um espaço e do lado em que quer jogar (l/r): ";
+        cout << " \nDigite o número da peça seguido de um espaço e do lado em que quer jogar (l/r): ";
 
         cin >> pieceNumber >> tableSide;
 
@@ -478,8 +483,7 @@ void updateRightTip(){
 }
 
 void showTable(){
-    cout << "\x1B[2J\x1B[H";
-    //ajeitar o clear acima
+    system("clear");
 
     int row = end(table) - begin(table);
     for (int i = 0; i < row; i++){
