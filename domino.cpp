@@ -315,7 +315,12 @@ void countScores()
 
     int minScore = playersScore[0];
     bool tied = false;
-    for (int i = 0; i < TOTAL_PLAYERS; i++)
+
+    // Impressão primeiro jogador
+    cout << endl << players[0].name << ": " << endl;
+    cout << showHand(0) << " = " << to_string(playersScore[0]) << " pontos.";
+
+    for (int i = 1; i < TOTAL_PLAYERS; i++)
     {
         cout << endl << players[i].name << ": " << endl;
 
