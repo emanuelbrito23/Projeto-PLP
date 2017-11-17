@@ -99,7 +99,7 @@ void startGame()
         cin >> totalHumanPlayers;
         if (totalHumanPlayers < 1 || totalHumanPlayers > 4)
         {
-            cout << "Quantidade de Jogadores inválida. Digite valores de 1-4.\n";
+            cout << "Quantidade de Jogadores inválida. Digite valores de 1-4." << endl;
         }
     }
 
@@ -142,7 +142,7 @@ void firstMove()
                 deleteHandPiece(n_players, n_dominoPieces);
                 cout << endl;
                 showTable();
-                nextMove(n_players + 1 % TOTAL_PLAYERS, 0);
+                nextMove((n_players + 1) % TOTAL_PLAYERS, 0);
             }
         }
     }
@@ -180,7 +180,6 @@ void nextMove(int n_players, int n_passedMoves)
         if (finishGame)
         {
             cout << players[(n_players - 1) % TOTAL_PLAYERS].name << " é o vencedor!!!" << endl;
-            finishGame = false;
             n_passedMoves = 0;
             exitGame();
         }
@@ -307,10 +306,9 @@ void countScores()
 {
     int playersScore[4] = {0, 0, 0, 0};
     int indexWinnerPlayer = -1;
-    for (int i = 0; i < TOTAL_PLAYERS; i++)
-    {
-        for (int j = 0; j < players[i].dominoPieces.size(); j++)
-        {
+    for (int i = 0; i < TOTAL_PLAYERS; i++){
+
+        for (int j = 0; j < players[i].dominoPieces.size(); j++){
             playersScore[i] += players[i].dominoPieces[j].right_number;
             playersScore[i] += players[i].dominoPieces[j].left_number;
         }
@@ -320,6 +318,9 @@ void countScores()
     bool tied = false;
     for (int i = 0; i < TOTAL_PLAYERS; i++)
     {
+        cout << endl << players[i].name << ": " << endl;
+
+        cout << showHand(i) << " = " << to_string(playersScore[i]) << " pontos.";
         if (playersScore[i] <= minScore)
         {
             if (playersScore[i] == minScore)
@@ -344,7 +345,7 @@ void countScores()
     else
     {
         string result = "..." + players[indexWinnerPlayer].name + " venceu o jogo com menos pontos.";
-        cout << result << endl;
+        cout << endl << result << endl;
     }
 }
 
@@ -371,13 +372,13 @@ bool robotMove(int n_players)
     string tableSide;
     int n_dominoPieceMax = -1;
     bool result = false;
-    cout << players[n_players].name << ": " << endl;
-    cout << "Bot realizando jogada..." << endl;
+    cout << players[n_players].name << " realizando jogada..." << endl;
+
     sleep(3);
     if (!hasPieces(n_players))
     {
 
-        cout << "Passo a vez..." << endl;
+        cout << "Passou a vez..." << endl;
         sleep(3);
         result = true;
     }
