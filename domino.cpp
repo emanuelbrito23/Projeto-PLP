@@ -247,9 +247,8 @@ bool humanMove(int n_players)
     if (!hasPieces(n_players))
     {
 
-        cout << " Você não tem peças, tecle ENTER para continuar... ";
-        cin.get();
-        cin.get();
+        cout << endl << " Você não tem peças, próximo jogador... " << endl;
+        sleep(3);
         result = true;
     }
     else
@@ -336,10 +335,11 @@ void countScores()
             }
         }
     }
-
+    sleep(2);
     if (tied)
     {
-        cout << "...Jogo terminou! Continou empatado mesmo na contagem dos pontos." << endl;
+
+        cout << endl << "...Jogo terminou! Continou empatado mesmo na contagem dos pontos." << endl;
     }
     else
     {
@@ -373,11 +373,12 @@ bool robotMove(int n_players)
     bool result = false;
     cout << players[n_players].name << ": " << endl;
     cout << "Bot realizando jogada..." << endl;
-    sleep(2);
+    sleep(3);
     if (!hasPieces(n_players))
     {
 
         cout << "Passo a vez..." << endl;
+        sleep(3);
         result = true;
     }
     else
