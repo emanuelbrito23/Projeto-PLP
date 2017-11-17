@@ -188,7 +188,6 @@ void nextMove(int n_players, int n_passedMoves)
             cout << "Jogo empatado durante a partida, na contagem dos pontos...";
             n_passedMoves = 0;
             countScores();
-            exitGame();
         }
     }
 }
@@ -347,6 +346,9 @@ void countScores()
         string result = "..." + players[indexWinnerPlayer].name + " venceu o jogo com menos pontos.";
         cout << endl << result << endl;
     }
+
+    exitGame();
+    exit(0);
 }
 
 bool robotMove(int n_players)
