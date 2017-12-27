@@ -5,9 +5,7 @@ import System.Random
 import System.IO.Unsafe
 import Data.Matrix
 
--- Consts
-rightTip = (2,10)
-leftTip = (2,10)
+type Tip = ((Integer, Integer), [Char])
 
 main = do
     system "cls"
@@ -71,25 +69,38 @@ printDominoPieces (x:xs) = do
                             print test
                             printDominoPieces xs
 
+humanMove :: [(Integer,Integer)] -> [(Integer,Integer)] -> IO Tip
 humanMove hand table =
-    if (hasPiece hand table) then 
-        -- side <- getLine
-        -- num <- getLine
-        ((0,0), "z")
-        -- if ((playPiece side hand (read num) table) == (- 1, - 1)) then do
-        --     putStrLn "Jogada Inválida"
-        --     humanMove hand table
-        -- else (playPiece side hand (read num) table)
-    else ((- 1, - 1), "x")
+    if (hasPiece hand table) then do
+        side <- getLine
+        num <- getLine
+        validMove <- (playPiece side hand (read num) table)
+        if (validMove == ((-1, -1), "")) then do
+            putStrLn "Jogada Inválida"
+            humanMove hand table
+        else return validMove
+    else return ((-1, -1), "")
  
 hasPiece [] table = False
 hasPiece (hand: hands) table =
   if ((fst (hand) == fst (head table)) || (snd (hand) == fst (head table)) || (fst (hand) == snd (last table)) || (snd (hand) == snd (last table))) then True else hasPiece hands table
- 
--- playPiece side hand num table =
---   if side == "r" then  if checkPiece (getPiece hand num) (snd (last table)) then ((getPiece hand num, side), side) else ((- 1, -1), "x")
---  else if checkPiece (getPiece hand num) (fst (head table)) then ((getPiece hand num, side), side) else ((- 1, -1), "x")
- 
+
+playPiece :: [Char] -> [(Integer,Integer)] -> Int -> [(Integer,Integer)] -> IO Tip
+playPiece side hand num table = do
+  print side
+  print hand
+  print num
+  print table
+  if side == "r" then 
+    if checkPiece (getPiece hand num) (snd (last table)) then 
+        return ((getPiece hand num), side)
+    else return ((-1, -1), "")
+  else 
+    if checkPiece (getPiece hand num) (fst (head table)) then 
+        return ((getPiece hand num), side)
+    else return ((-1, -1), "")
+
+getPiece :: [(Integer,Integer)] -> Int -> (Integer,Integer)
 getPiece pieces 1 = head pieces
 getPiece pieces num = getPiece (tail pieces) (num - 1)
 
@@ -109,31 +120,41 @@ showPieces (head:body)=
 firstMove :: [[(Integer,Integer)]] -> Int -> [(Integer,Integer)] -> IO ()
 firstMove (head:body) qtdHumanPlayer table = do
   let newTable = table ++ [(6,6)]
-  let message = "O jogador " ++ (show (viewStart (head:body) 1)) ++ " comecou a partida"
-  print newTable
+  let initialPlayer = viewStart (head:body) 1
+  let message = "O jogador " ++ (show (initialPlayer)) ++ " comecou a partida"
+  let newHands = updateHands initialPlayer (head:body) (6,6)
   putStrLn message
-  nextMove (((viewStart (head:body) 1) `mod` 4) + 1) (head:body) qtdHumanPlayer newTable
+  nextMove (((viewStart (head:body) 1) `mod` 4) + 1) newHands qtdHumanPlayer newTable
 
-nextMove numPlayer (head:body) qtdHumanPlayer table =
+move :: Int -> [(Integer,Integer)] -> Int -> [(Integer,Integer)] -> IO Tip
+move numPlayer hand qtdHumanPlayer table = 
+    if numPlayer <= qtdHumanPlayer then do
+        putStrLn "HumanMove"
+        humanMove hand table
+    else do
+        putStrLn "robotMove"
+        robotMove hand table
+
+nextMove :: Int -> [[(Integer,Integer)]] -> Int -> [(Integer,Integer)] -> IO ()
+nextMove numPlayer (head:body) qtdHumanPlayer table = do
+    print numPlayer
+    print (head:body)
+    print qtdHumanPlayer
+    print table
+
     if not (blockedGame (head:body) table) then 
-        if not (finishGame (head:body)) then 
-            if numPlayer <= qtdHumanPlayer then
-                if (humanMove (selectHand (head:body) numPlayer) table) == ((- 1, - 1), "x") then 
-                    nextMove ((numPlayer `mod` 4) + 1) (head:body) qtdHumanPlayer table 
-                else
-                    putStrLn "Entrei aqui"
-        --             showPieces table {-fazer funcionar os dois comandos (showPieces e nextMove) retornando o que nextMove retorna-} 
-            else do 
-                putStrLn "Entrei aqui 2"
-                return ()
-        else return ()
-    else return ()
-  
--- insertTable :: (Integer,Integer) -> Matrix [Char] -> Matrix [Char]
--- insertTable (left,rigth) table = do
---     let piece = "[" ++ (show left) ++ "|" ++ (show rigth) ++ "]"
---     setElem piece (rightTip) table
-
+        if not (finishGame (head:body)) then do
+                validMove <- (move numPlayer (selectHand (head:body) numPlayer) qtdHumanPlayer table)
+                let nextPlayer = ((numPlayer `mod` 4) + 1)
+                if validMove == ((-1, -1), "") then 
+                    nextMove nextPlayer (head:body) qtdHumanPlayer table
+                else do
+                    let newTable = updateTable validMove table
+                    let piece = (fst validMove)
+                    let newHands = updateHands numPlayer (head:body) piece
+                    nextMove nextPlayer newHands qtdHumanPlayer newTable
+        else putStrLn "Fim Else 2"
+    else putStrLn "Fim Else 1"
    
 viewStart (head:body) num =
   if viewPiece head then num else viewStart body (num + 1)
@@ -159,24 +180,25 @@ blockedGame [] table = True
 blockedGame (hand:hands) table =
   if hasPiece hand table then False else blockedGame hands table
 
--- updateTable piece table 
---     | side == "l" && snd newPiece == head = [newPiece] ++ table
---     | side == "l" && fst newPiece == head = [(snd newPiece, fst newPiece)] ++ table
---     | side == "r" && fst newPiece == last = table ++ [newPiece]
---     | side == "r" && snd newPiece == last = table ++ [(snd newPiece, fst newPiece)]
---     | otherwise = table
---     where
---         newPiece = fst piece
---         side = snd piece
---         head = fst (head table)
---         last = snd (last table)
-
-robotMove hand table
-    | temp == True = (robotPlay hand table)
-    | otherwise = ((-1,-1),"")
+updateTable :: ((Integer,Integer), [Char]) -> [(Integer,Integer)] -> [(Integer,Integer)]
+updateTable move table 
+    | (side == "l") && ((snd piece) == leftTip) = [piece] ++ table
+    | (side == "l") && ((fst piece) == leftTip) = [(snd piece, fst piece)] ++ table
+    | (side == "r") && ((fst piece) == rightTip) = table ++ [piece]
+    | (side == "r") && ((snd piece) == rightTip) = table ++ [(snd piece, fst piece)]
+    | otherwise = table
     where
-        temp = (hasPiece hand table)
-    
+        piece = fst move
+        side = snd move
+        leftTip = fst (head table)
+        rightTip = snd (last table)
+
+robotMove :: [(Integer,Integer)] -> [(Integer,Integer)] -> IO Tip
+robotMove hand table
+    | ((hasPiece hand table) == True) = (robotPlay hand table)
+    | otherwise = return ((-1,-1),"")
+
+robotPlay :: [(Integer,Integer)] -> [(Integer,Integer)] -> IO Tip
 robotPlay hand table
     | length specialPieces /= 0 = selectSide (maximum specialPieces) table
     | otherwise = selectSide (maximum possiblePieces) table
@@ -185,8 +207,9 @@ robotPlay hand table
         possiblePieces = [x | x <- hand, any (== (fst x)) numbersTable || any (== (snd x)) numbersTable]
         specialPieces = [x | x <- possiblePieces, fst x == snd x ]
     
+selectSide :: (Integer,Integer) -> [(Integer,Integer)] -> IO Tip
 selectSide piece table
-    | left == True = (piece, "l")
-    | otherwise = (piece, "r")
+    | left == True = return (piece, "l")
+    | otherwise = return (piece, "r")
     where
-        left = fst piece == fst (head table) || snd piece == fst (head table)
+        left = (fst piece) == (fst (head table)) || (snd piece) == (fst (head table))
