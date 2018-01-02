@@ -4,13 +4,17 @@ import System.Process
 import System.Random
 import System.IO.Unsafe
 import Data.Matrix
+import Control.Concurrent
 
 type Tip = ((Integer, Integer), [Char])
 
 main = do
+    cleanScreen
+    openMenu
+
+cleanScreen = do
     system "cls"
     system "clear"
-    openMenu
     
 randomInt :: Int -> Int -> Int
 randomInt x y = unsafePerformIO (getStdRandom (randomR (x, y)))
@@ -70,13 +74,15 @@ printDominoPieces (x:xs) = do
                             printDominoPieces xs
 
 humanMove :: [(Integer,Integer)] -> [(Integer,Integer)] -> IO Tip
-humanMove hand table =
+humanMove hand table = do
     if (hasPiece hand table) then do
-        side <- getLine
+        putStr "\nDigite o número da peça: "
         num <- getLine
+        putStr "Digite o lado em que quer jogar (l/r): "
+        side <- getLine
         validMove <- (playPiece side hand (read num) table)
         if (validMove == ((-1, -1), "")) then do
-            putStrLn "Jogada Inválida"
+            putStrLn "\nJogada Inválida"
             humanMove hand table
         else return validMove
     else return ((-1, -1), "")
@@ -87,18 +93,15 @@ hasPiece (hand: hands) table =
 
 playPiece :: [Char] -> [(Integer,Integer)] -> Int -> [(Integer,Integer)] -> IO Tip
 playPiece side hand num table = do
-  print side
-  print hand
-  print num
-  print table
   if side == "r" then 
     if checkPiece (getPiece hand num) (snd (last table)) then 
         return ((getPiece hand num), side)
     else return ((-1, -1), "")
-  else 
+  else if side == "l" then
     if checkPiece (getPiece hand num) (fst (head table)) then 
         return ((getPiece hand num), side)
     else return ((-1, -1), "")
+  else return ((-1, -1), "")
 
 getPiece :: [(Integer,Integer)] -> Int -> (Integer,Integer)
 getPiece pieces 1 = head pieces
@@ -108,53 +111,69 @@ getIntervalPieces pieces first last = if (first <= last) then [getPiece pieces f
  
 checkPiece pieceHand num =
   if (fst (pieceHand) == num) || snd (pieceHand) == num then True else False
- 
+
+showPieces :: [(Integer,Integer)] -> [Char]
 showPieces [] = ""
 showPieces (head:body)=
   "[" ++ (show (fst (head))) ++ "|" ++ (show (snd (head))) ++ "] " ++ (showPieces body)
- 
--- numbersHand [] num = ""
--- numbersHand (head:body) num =
---   "  " ++ (show (num)) ++ "   " ++ numbersHand body (num+1)
+
+numbersHand [] num = ""
+numbersHand (head:body) num =
+  "  " ++ (show (num)) ++ "   " ++ numbersHand body (num+1)
+
+showHand hand = do
+    putStrLn (numbersHand hand 1)
+    putStrLn (showPieces hand)
+
+showTable table = putStrLn (showPieces table ++ "\n")
 
 firstMove :: [[(Integer,Integer)]] -> Int -> [(Integer,Integer)] -> IO ()
 firstMove (head:body) qtdHumanPlayer table = do
   let newTable = table ++ [(6,6)]
   let initialPlayer = viewStart (head:body) 1
-  let message = "O jogador " ++ (show (initialPlayer)) ++ " comecou a partida"
+  let message = "O jogador " ++ (show (initialPlayer)) ++ " comecou a partida\n"
   let newHands = updateHands initialPlayer (head:body) (6,6)
+  print newHands
+  cleanScreen
   putStrLn message
   nextMove (((viewStart (head:body) 1) `mod` 4) + 1) newHands qtdHumanPlayer newTable
 
 move :: Int -> [(Integer,Integer)] -> Int -> [(Integer,Integer)] -> IO Tip
-move numPlayer hand qtdHumanPlayer table = 
+move numPlayer hand qtdHumanPlayer table = do
     if numPlayer <= qtdHumanPlayer then do
-        putStrLn "HumanMove"
+        showHand hand
         humanMove hand table
     else do
-        putStrLn "robotMove"
+        let message = "Jogador " ++ (show (numPlayer)) ++ " realizando jogada..."
+        putStrLn message
+        threadDelay 3000000
         robotMove hand table
 
 nextMove :: Int -> [[(Integer,Integer)]] -> Int -> [(Integer,Integer)] -> IO ()
-nextMove numPlayer (head:body) qtdHumanPlayer table = do
-    print numPlayer
-    print (head:body)
-    print qtdHumanPlayer
-    print table
-
-    if not (blockedGame (head:body) table) then 
-        if not (finishGame (head:body)) then do
-                validMove <- (move numPlayer (selectHand (head:body) numPlayer) qtdHumanPlayer table)
-                let nextPlayer = ((numPlayer `mod` 4) + 1)
-                if validMove == ((-1, -1), "") then 
-                    nextMove nextPlayer (head:body) qtdHumanPlayer table
-                else do
-                    let newTable = updateTable validMove table
-                    let piece = (fst validMove)
-                    let newHands = updateHands numPlayer (head:body) piece
-                    nextMove nextPlayer newHands qtdHumanPlayer newTable
-        else putStrLn "Fim Else 2"
-    else putStrLn "Fim Else 1"
+nextMove numPlayer hands qtdHumanPlayer table = do
+    showTable table
+    if not (blockedGame hands table) then 
+        if not (finishGame hands) then do
+            let message = "Vez do jogador " ++ (show (numPlayer)) ++ "\n"
+            putStrLn message
+            let currentHand = selectHand hands numPlayer
+            validMove <- (move numPlayer currentHand qtdHumanPlayer table)
+            let nextPlayer = ((numPlayer `mod` 4) + 1)
+            if validMove == ((-1, -1), "") then do
+                putStrLn "\nVocê não tem peças, próximo jogador...\n"
+                threadDelay 3000000
+                cleanScreen
+                nextMove nextPlayer hands qtdHumanPlayer table
+            else do
+                let newTable = updateTable validMove table
+                let piece = (fst validMove)
+                let newHands = updateHands numPlayer hands piece
+                cleanScreen
+                nextMove nextPlayer newHands qtdHumanPlayer newTable
+        else do
+            let message = "Jogador " ++ (show (numPlayer - 1)) ++ " é o vencedor!!!"
+            putStrLn message
+    else putStrLn "Jogo empatado, não houve vencedor."
    
 viewStart (head:body) num =
   if viewPiece head then num else viewStart body (num + 1)
@@ -167,7 +186,7 @@ finishGame [] = False
 finishGame (head:body) = 
   if length head == 0 then True else finishGame body
 
-selectHand (head:body) numPlayer = if numPlayer == 1 then head else selectHand body (numPlayer - 1)
+selectHand hand numPlayer = if numPlayer == 1 then head hand else selectHand (tail hand) (numPlayer - 1)
   
 updateHands num (head:body) piece =
   if num == 1 then [(removePiece head piece)] ++ body else [head] ++ updateHands (num - 1) body piece
