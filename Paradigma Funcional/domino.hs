@@ -45,8 +45,6 @@ startGame = do
     else do
         firstMove hands (read totalHumanPlayers) table
 
-createTable = matrix 3 19 $ \(i,j) -> "      "
-
 createHands pieces = [hand1, hand2, hand3, hand4]
     where
         randomPieces = randomDominoPieces pieces 28
@@ -66,12 +64,6 @@ createDominoPieces xs = if second == 6 then (if first == 6 then xs else createDo
     where
         first = fst(last xs)
         second = snd(last xs)
-
-printDominoPieces [] = putStrLn ""
-printDominoPieces (x:xs) = do
-                            let test = show (fst x) ++ ":" ++ show (snd x)
-                            print test
-                            printDominoPieces xs
 
 humanMove :: [(Integer,Integer)] -> [(Integer,Integer)] -> IO Tip
 humanMove hand table = do
