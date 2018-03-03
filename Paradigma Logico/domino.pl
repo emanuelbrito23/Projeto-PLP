@@ -55,17 +55,92 @@ removePiece([Hand|Hs], Hands0, Player, Piece, R):-
 removePiece(Hands, Player, Piece, R):-
 	removePiece(Hands, [], Player, Piece, R).
 
-nextMove(Hands, Player, Table).
+
+
+printNumberPiece(L, NumberPiece):-
+	(L >= NumberPiece) -> write('  '),
+		write(NumberPiece),
+		write('   '),
+		NumberPiece0 is (NumberPiece + 1),
+		printNumberPiece(L, NumberPiece0);
+		nl.
+
+getSidePiece(Piece, "l", N):-
+	Piece =.. Piece0,
+	nth0(1, Piece0, N).
+
+getSidePiece(Piece, "r", N):-
+	Piece =.. Piece0,
+	nth0(2, Piece0, N).
+
+showHand(Hand, Length, NumberPiece):-
+	nth1(NumberPiece, Hand, Piece),
+	getSidePiece(Piece, "l", LP),
+	getSidePiece(Piece, "r", RP),
+	write('['),
+	write(LP),
+	write('|'),
+	write(RP),
+	write('] '),
+	NumberPiece0 is (NumberPiece + 1),
+	(Length >= NumberPiece0) ->
+		showHand(Hand, Length, NumberPiece0);
+		nl.
+
+showHand(Hand, L):-
+	printNumberPiece(L, 1),
+	showHand(Hand, L, 1).
+
+move(Hand, Player, TotalHumanPlayers, Table):-
+	Player =< TotalHumanPlayers,
+	length(Hand, L),
+	showHand(Hand, L),
+	humanMove().
+
+move(Hand, Player, TotalHumanPlayers, Table):-
+	Player > TotalHumanPlayers,
+	write('Jogador '),
+	write(Player),
+	write(' realizando jogada'),
+	sleep(2),
+	robotMove()
+
+	
+	.
+humanMove().
+robotMove().
+
+getHand([Hand|Hs], 1, Hand).
+
+getHand([Hand|Hs], Player, H):-
+	Player0 is (Player - 1),
+	getHand(Hs, Player0, H).
+
+updateHands(Hands, Hand, Player, H).
+
+nextMove(Hands, Player, TotalHumanPlayers, Table):-
+	write('Vêz do jogador '),
+	writeln(Player), nl,
+	getHand(Hands, Player, Hand),
+	move(Hand, Player, TotalHumanPlayers, Table).
+
 %implementar a regra a cima
+showTable().
+showHand().
+
 
 firstMove(Hands, Player, Hands, Player).
 firstMove(Hands, H, P) :-
 	firstPlayer(Hands, Player0),
 	removePiece(Hands, Player0, (6,6), NewHands),
-	writeln("Jogador: "),
-	writeln(Player0),
-	writeln(NewHands),
-	firstMove(NewHands, Player0, H, P).
+	tty_clear,
+	write('O jogador '),
+	write(Player0), 
+	writeln(' começou a partida'), nl,
+	writeln('[6|6]'), nl,
+	CurrentPlayer0 is mod(Player0, 4),
+	CurrentPlayer is CurrentPlayer0 + 1,
+	firstMove(NewHands, CurrentPlayer, H, P).
 	
 firstPlayer(Hands, Player) :-
 	firstPlayer(Hands, 1, Player).
@@ -95,11 +170,12 @@ startGame(Hands) :-
 	write('Escolha a quantidade de jogadores na partida [1-4]: '),
 	read_line_to_string(user_input, A1),
  	atom_number(A1, TotalHumanPlayers),
- 	((TotalHumanPlayers < 0) ; (TotalHumanPlayers > 4)) ->
-		writeln('Quantidade de jogadores inválida. Digite valores do intervalo [1,4].'),
-		startGame(Hands);
+ 	((TotalHumanPlayers >= 0), (TotalHumanPlayers =< 4)) ->
 		firstMove(Hands, NewHands, Player),
-		nextMove(NewHands, Player, [(6,6)]).
+		nextMove(NewHands, Player, TotalHumanPlayers, [(6,6)]);
+		writeln('Quantidade de jogadores inválida. Digite valores do intervalo [1,4].'),
+		startGame(Hands).
+		
 
 startGame :-
 	getDominoPieces(AllPieces),
