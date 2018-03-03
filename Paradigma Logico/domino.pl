@@ -39,16 +39,28 @@ updateTable(Piece, "l", Table, NewTable) :-
 updateTable(Piece, "r", Table, NewTable) :-
 	append(Table, Piece, NewTable).
 
-%% Descobrir como remover elemento de matriz (Lista de lista)
-removePiece([Hand|Hs], Player, Piece, NewHands).
+
+removePiece([], R, Player, Piece, R).
+
+removePiece([Hand|Hs], Hands0, Player, Piece, R):-
+	length(Hands0, L),
+	Length is (L + 1),
+	((Player =:= Length) -> delete(Hand, Piece, NewHand),
+		append(Hands0, [NewHand], Hands1);
+		append(Hands0, [Hand], Hands1)),
+	removePiece(Hs, Hands1, Player, Piece, R).
+	
+removePiece(Hands, Player, Piece, R):-
+	removePiece(Hands, [], Player, Piece, R).
+
 nextMove(Hands, Player, Table).
-%implementar as 2 regras a cima
+%implementar a regra a cima
 
 firstMove(Hands, Player, Hands, Player).
 firstMove(Hands, H, P) :-
 	firstPlayer(Hands, Player0),
 	removePiece(Hands, Player0, (6,6), NewHands),
-	firstMove(Hands, Player0, H, P).
+	firstMove(NewHands, Player0, H, P).
 	
 firstPlayer(Hands, Player) :-
 	firstPlayer(Hands, 1, Player).
