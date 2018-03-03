@@ -12,6 +12,8 @@
 %% Adicionar no final:
 %% append(List, [Elem], +NewList),
 
+%% Para executar: swipl -q -f domino.pl
+
 
 getDominoPieces(AllPieces) :-
 	AllPieces = 
@@ -40,7 +42,7 @@ updateTable(Piece, "r", Table, NewTable) :-
 	append(Table, Piece, NewTable).
 
 
-removePiece([], R, Player, Piece, R).
+removePiece([], R, _, _, R).
 
 removePiece([Hand|Hs], Hands0, Player, Piece, R):-
 	length(Hands0, L),
@@ -60,6 +62,9 @@ firstMove(Hands, Player, Hands, Player).
 firstMove(Hands, H, P) :-
 	firstPlayer(Hands, Player0),
 	removePiece(Hands, Player0, (6,6), NewHands),
+	writeln("Jogador: "),
+	writeln(Player0),
+	writeln(NewHands),
 	firstMove(NewHands, Player0, H, P).
 	
 firstPlayer(Hands, Player) :-
@@ -73,17 +78,17 @@ firstPlayer([Hand|Hs], Player0, Player) :-
  		firstPlayer(Hs, NextPlayer, Player)).
 
 
-transferPiecesToHands(Pieces, TotalPieces, 7, Hand, Hands, Hands, Pieces).
+transferPiecesToHands_(Pieces, _, _, Hands, Hands, Pieces).
 
-transferPiecesToHands(Pieces, TotalPieces, HandLength, Hand, Hands, H, P) :-
+transferPiecesToHands(Pieces, TotalPieces, Hand, Hands, H, P) :-
 	random(0, TotalPieces, Index), 
 	nth0(Index, Pieces, RandomPiece),
 	delete(Pieces, RandomPiece, NewPieces),
 	append([RandomPiece], Hand, NewHand),
 	NewTotalPieces is (TotalPieces - 1),
-	length(NewHand, HL),
-	((HL =:= 7) -> 	append([NewHand], Hands, NewHands), transferPiecesToHands(NewPieces, NewTotalPieces, HL, NewHand, NewHands, H, P);
-	transferPiecesToHands(NewPieces, NewTotalPieces, HL, NewHand, Hands, H, P)).
+	length(NewHand, HandLength),
+	((HandLength =:= 7) -> 	append([NewHand], Hands, NewHands), transferPiecesToHands_(NewPieces, NewTotalPieces, NewHand, NewHands, H, P);
+	transferPiecesToHands(NewPieces, NewTotalPieces, NewHand, Hands, H, P)).
 
 
 startGame(Hands) :-
@@ -98,10 +103,10 @@ startGame(Hands) :-
 
 startGame :-
 	getDominoPieces(AllPieces),
-	transferPiecesToHands(AllPieces, 28, 0, [], [], Hands, AllPieces1),
-	transferPiecesToHands(AllPieces1, 21, 0, [], Hands, Hands1, AllPieces2),
-	transferPiecesToHands(AllPieces2, 14, 0, [], Hands1, Hands2, AllPieces3),
-	transferPiecesToHands(AllPieces3, 7, 0, [], Hands2, Hands3, AllPieces4),
+	transferPiecesToHands(AllPieces, 28, [], [], Hands, AllPieces1),
+	transferPiecesToHands(AllPieces1, 21, [], Hands, Hands1, AllPieces2),
+	transferPiecesToHands(AllPieces2, 14, [], Hands1, Hands2, AllPieces3),
+	transferPiecesToHands(AllPieces3, 7, [], Hands2, Hands3, _),
 
 	startGame(Hands3), nl.
 
