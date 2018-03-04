@@ -15,7 +15,7 @@
 
 %% Para executar: swipl -q -f domino.pl
 
-updateHands(OldHand, Hand, [], []).
+updateHands(_, _, [], []).
 updateHands(OldHand, Hand, [OldHand|Os], [Hand|Hs]):- 
 	updateHands(OldHand, Hand, Os, Hs).
 
@@ -50,6 +50,7 @@ updateTable(Piece, "l", Table, NewTable) :-
 updateTable(Piece, "r", Table, NewTable) :-
 	append(Table, [Piece], NewTable).
 
+
 printNumberPiece(L, NumberPiece):-
 	(L >= NumberPiece) -> write('  '),
 		write(NumberPiece),
@@ -58,6 +59,7 @@ printNumberPiece(L, NumberPiece):-
 		printNumberPiece(L, NumberPiece0);
 		nl.
 
+
 getPieceSide(Piece, "l", N):-
 	Piece =.. Piece0,
 	nth0(1, Piece0, N).
@@ -65,6 +67,7 @@ getPieceSide(Piece, "l", N):-
 getPieceSide(Piece, "r", N):-
 	Piece =.. Piece0,
 	nth0(2, Piece0, N).
+
 
 showHand(Hand, Length, NumberPiece):-
 	nth1(NumberPiece, Hand, Piece),
@@ -85,6 +88,7 @@ showHand(Hand):-
 	printNumberPiece(L, 1),
 	showHand(Hand, L, 1).
 
+
 validateMove(Hand, NumberPiece, "r", Table):-
 	last(Table, TablePiece),
 	nth1(NumberPiece, Hand, Piece),
@@ -93,17 +97,19 @@ validateMove(Hand, NumberPiece, "r", Table):-
 	getPieceSide(TablePiece, "r", T),
 	(LP =:= T ; RP =:= T).
 
-validateMove(Hand, NumberPiece, "l", [TablePiece|Ts]):-
+validateMove(Hand, NumberPiece, "l", [TablePiece|_]):-
 	nth1(NumberPiece, Hand, HandPiece),
 	getPieceSide(HandPiece, "l", LP),
 	getPieceSide(HandPiece, "r", RP),
 	getPieceSide(TablePiece, "l", Table),
 	(LP =:= Table ; RP =:= Table).
 
+
 isHuman(Player, TotalHumanPlayers):-
 	Player =< TotalHumanPlayers.
 isRobot(Player, TotalHumanPlayers):-
 	Player > TotalHumanPlayers.
+
 
 playPiece(Hand, NumberPiece, "l", [TPiece|TablePieces], NewHand, NewTable):-
 	nth1(NumberPiece, Hand, HandPiece),
@@ -143,6 +149,7 @@ playPiece(Hand, NumberPiece, "r", Table, NewHand, NewTable):-
 	updateTable((RHandPiece, LHandPiece), "r", Table, NewTable),
 	removePiece(Hand, HandPiece, NewHand).
 
+
 move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable):-
 	isHuman(Player, TotalHumanPlayers),
 	showHand(Hand),
@@ -169,17 +176,19 @@ move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable):-
 	write(' realizando jogada'),
 	sleep(2).
 
+
 getHand(Hands, Player, Hand):-
 	nth1(Player, Hands, Hand).
 
-hasPiece([], Table):- 
+
+hasPiece([], _):- 
 	writeln('Você não tem peças, próximo jogador...'),
 	sleep(2),
 	false.
 
 hasPiece([Piece|Hand], Table):-
 	last(Table, LastTablePiece),
-	getPieceSide(Piece, "r", RPiece),
+	getPieceSide(Piece, "r", RPiece),	
 	getPieceSide(LastTablePiece, "r", RTablePiece),
 	nth1(1, Table, FirstTablePiece),
 	getPieceSide(Piece, "l", LPiece),
@@ -191,6 +200,12 @@ hasPiece([Piece|Hand], Table):-
 		true;
 		hasPiece(Hand, Table)).
 
+
+continueGame(Hand, Player, Table):-
+	length(Hand, L),
+	(L > 0) -> true; finishGame(Player, Table).
+
+
 nextMove(Hands, Player, TotalHumanPlayers, Table):-
 	showTable(Table),
 	write('Vez do jogador '),
@@ -199,6 +214,7 @@ nextMove(Hands, Player, TotalHumanPlayers, Table):-
 	hasPiece(Hand, Table),
 	move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable),
 	updateHands(Hand, NewHand, Hands, NewHands),
+	continueGame(NewHand, Player, NewTable),
 	NextPlayer0 is mod(Player, 4),
 	NextPlayer is (NextPlayer0 + 1),
 	tty_clear,
@@ -206,21 +222,32 @@ nextMove(Hands, Player, TotalHumanPlayers, Table):-
 
 nextMove(Hands, Player, TotalHumanPlayers, Table):-
 	NextPlayer0 is mod(Player, 4),
-	NextPlayer is (NextPlayer0 + 1),
+	NextPlayer is (NextPlayer0 + 1),	
 	tty_clear,
 	nextMove(Hands, NextPlayer, TotalHumanPlayers, Table).
+
+
+finishGame(Player, Table):-
+	tty_clear,
+	showTable(Table),
+	write('Jogador '),
+	write(Player),
+	writeln(' é o vencedor!!!'),
+	halt(0).
+
 
 showTable(Table):- 
 	length(Table, L),
 	showHand(Table, L, 1).
 
 
+removePiece(Hand, Piece, NewHand):- delete(Hand, Piece, NewHand).
+
 removePiece(Hands, Player, Piece, NewHands):-
 	getHand(Hands, Player, Hand),
 	delete(Hand, Piece, NewHand),
 	updateHands(Hand, NewHand, Hands, NewHands).
 
-removePiece(Hand, Piece, NewHand):- delete(Hand, Piece, NewHand).
 
 firstMove(Hands, Hs, P) :-
 	firstPlayer(Hands, Player0),
@@ -232,9 +259,13 @@ firstMove(Hands, Hs, P) :-
 	NextPlayer is mod(Player0, 4),
 	P is (NextPlayer + 1).
 	
+
+
+
 firstPlayer(Hands, Player) :-
 	firstPlayer(Hands, 1, Player).
 
+	
 firstPlayer([], Player, Player).
 
 firstPlayer([Hand|Hs], Player0, Player) :-
@@ -253,7 +284,7 @@ transferPiecesToHands(Pieces, TotalPieces, Hand, Hands, H, P) :-
 	NewTotalPieces is (TotalPieces - 1),
 	length(NewHand, HandLength),
 	((HandLength =:= 7) -> 	append([NewHand], Hands, NewHands), transferPiecesToHands_(NewPieces, NewTotalPieces, NewHand, NewHands, H, P);
-	transferPiecesToHands(NewPieces, NewTotalPieces, NewHand, Hands, H, P)).
+		transferPiecesToHands(NewPieces, NewTotalPieces, NewHand, Hands, H, P)).
 
 
 startGame(Hands) :-
