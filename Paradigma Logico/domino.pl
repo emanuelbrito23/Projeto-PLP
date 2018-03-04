@@ -11,17 +11,17 @@
 %% append([Elem], List, -NewList),
 %% Adicionar no final:
 %% append(List, [Elem], -NewList),
-%% replace(+OldElem, +NewElem, +List, -List)
+%% updateHands(+OldElem, +NewElem, +List, -List)
 
 %% Para executar: swipl -q -f domino.pl
 
-replace(X, Y, [], []).
-replace(X, Y, [X|Xs], [Y|Ys]):- 
-	replace(X, Y, Xs, Ys).
+updateHands(OldHand, Hand, [], []).
+updateHands(OldHand, Hand, [OldHand|Os], [Hand|Hs]):- 
+	updateHands(OldHand, Hand, Os, Hs).
 
-replace(X, Y, [Z|Xs], [Z|Ys]):- 
-	X \== Z,
-	replace(X, Y, Xs, Ys).
+updateHands(OldHand, Hand, [Z|Os], [Z|Hs]):- 
+	OldHand \== Z,
+	updateHands(OldHand, Hand, Os, Hs).
 
 
 getDominoPieces(AllPieces) :-
@@ -158,7 +158,7 @@ move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable):-
  		sleep(2),
  		tty_clear,
  		showTable(Table),
- 		write('Vêz do jogador '),
+ 		write('Vez do jogador '),
  		writeln(Player), nl,
  		move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable)).
 
@@ -172,15 +172,43 @@ move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable):-
 getHand(Hands, Player, Hand):-
 	nth1(Player, Hands, Hand).
 
-updateHands(Hands, Hand, Player, H).
+hasPiece([], Table):- 
+	writeln('Você não tem peças, próximo jogador...'),
+	sleep(2),
+	false.
+
+hasPiece([Piece|Hand], Table):-
+	last(Table, LastTablePiece),
+	getPieceSide(Piece, "r", RPiece),
+	getPieceSide(LastTablePiece, "r", RTablePiece),
+	nth1(1, Table, FirstTablePiece),
+	getPieceSide(Piece, "l", LPiece),
+	getPieceSide(FirstTablePiece, "l", LTablePiece),
+	((RPiece =:= LTablePiece ;
+	  RPiece =:= RTablePiece;
+	  LPiece =:= LTablePiece;
+	  LPiece =:= RTablePiece) ->
+		true;
+		hasPiece(Hand, Table)).
 
 nextMove(Hands, Player, TotalHumanPlayers, Table):-
-	write('Vêz do jogador '),
+	showTable(Table),
+	write('Vez do jogador '),
 	writeln(Player), nl,
 	getHand(Hands, Player, Hand),
+	hasPiece(Hand, Table),
 	move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable),
-	replace(Hand, NewHand, Hands, NewHands).
-	%implementar NextMove
+	updateHands(Hand, NewHand, Hands, NewHands),
+	NextPlayer0 is mod(Player, 4),
+	NextPlayer is (NextPlayer0 + 1),
+	tty_clear,
+	nextMove(NewHands, NextPlayer, TotalHumanPlayers, NewTable).
+
+nextMove(Hands, Player, TotalHumanPlayers, Table):-
+	NextPlayer0 is mod(Player, 4),
+	NextPlayer is (NextPlayer0 + 1),
+	tty_clear,
+	nextMove(Hands, NextPlayer, TotalHumanPlayers, Table).
 
 showTable(Table):- 
 	length(Table, L),
@@ -190,7 +218,7 @@ showTable(Table):-
 removePiece(Hands, Player, Piece, NewHands):-
 	getHand(Hands, Player, Hand),
 	delete(Hand, Piece, NewHand),
-	replace(Hand, NewHand, Hands, NewHands).
+	updateHands(Hand, NewHand, Hands, NewHands).
 
 removePiece(Hand, Piece, NewHand):- delete(Hand, Piece, NewHand).
 
@@ -201,9 +229,8 @@ firstMove(Hands, Hs, P) :-
 	write('O jogador '),
 	write(Player0), 
 	writeln(' começou a partida'), nl,
-	writeln('[6|6]'), nl,
-	CurrentPlayer0 is mod(Player0, 4),
-	P is (CurrentPlayer0 + 1).
+	NextPlayer is mod(Player0, 4),
+	P is (NextPlayer + 1).
 	
 firstPlayer(Hands, Player) :-
 	firstPlayer(Hands, 1, Player).
