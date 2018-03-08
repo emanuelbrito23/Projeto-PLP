@@ -107,6 +107,7 @@ validateMove(Hand, NumberPiece, "l", [TablePiece|_]):-
 
 isHuman(Player, TotalHumanPlayers):-
 	Player =< TotalHumanPlayers.
+
 isRobot(Player, TotalHumanPlayers):-
 	Player > TotalHumanPlayers.
 
@@ -206,26 +207,45 @@ continueGame(Hand, Player, Table):-
 	(L > 0) -> true; finishGame(Player, Table).
 
 
-nextMove(Hands, Player, TotalHumanPlayers, Table):-
+nextMove(Hands, Player, TotalHumanPlayers, PassedMoves, Table):-
 	showTable(Table),
 	write('Vez do jogador '),
 	writeln(Player), nl,
 	getHand(Hands, Player, Hand),
-	hasPiece(Hand, Table),
+	hasPiece([], Table),
 	move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable),
 	updateHands(Hand, NewHand, Hands, NewHands),
 	continueGame(NewHand, Player, NewTable),
 	NextPlayer0 is mod(Player, 4),
 	NextPlayer is (NextPlayer0 + 1),
 	tty_clear,
-	nextMove(NewHands, NextPlayer, TotalHumanPlayers, NewTable).
+	NewPassedMoves is (0),
+	nextMove(NewHands, NextPlayer, TotalHumanPlayers, NewPassedMoves, NewTable).
 
-nextMove(Hands, Player, TotalHumanPlayers, Table):-
+gameNotTied(PassedMoves):-
+	(PassedMoves =:= 3) -> false; true.
+
+nextMove(Hands, Player, TotalHumanPlayers, PassedMoves, Table):-
+	gameNotTied(PassedMoves),
 	NextPlayer0 is mod(Player, 4),
 	NextPlayer is (NextPlayer0 + 1),	
 	tty_clear,
-	nextMove(Hands, NextPlayer, TotalHumanPlayers, Table).
+	nextMove(Hands, NextPlayer, TotalHumanPlayers, (PassedMoves + 1), Table).
 
+nextMove(Hands, Player, TotalHumanPlayers, PassedMoves, Table):-
+	tty_clear,
+	writeln('Jogo empatado durante a partida, na contagem dos pontos...'),
+	halt(0).
+
+gameTied(Hands):-
+	nth1(1, Hands, Hand1),
+	nth1(2, Hands, Hand2),
+	nth1(3, Hands, Hand3),
+	nth1(4, Hands, Hand4),
+	showHand(Hand1),
+	showHand(Hand2),
+	showHand(Hand3),
+	showHand(Hand4),
 
 finishGame(Player, Table):-
 	tty_clear,
@@ -234,7 +254,6 @@ finishGame(Player, Table):-
 	write(Player),
 	writeln(' é o vencedor!!!'),
 	halt(0).
-
 
 showTable(Table):- 
 	length(Table, L),
@@ -248,44 +267,35 @@ removePiece(Hands, Player, Piece, NewHands):-
 	delete(Hand, Piece, NewHand),
 	updateHands(Hand, NewHand, Hands, NewHands).
 
-
-firstMove(Hands, Hs, P) :-
+firstMove(Hands, Hs, NextPlayer) :-
 	firstPlayer(Hands, Player0),
 	removePiece(Hands, Player0, (6,6), Hs),
 	tty_clear,
 	write('O jogador '),
 	write(Player0), 
 	writeln(' começou a partida'), nl,
-	NextPlayer is mod(Player0, 4),
-	P is (NextPlayer + 1).
-	
-
-
+	NextPlayer is (mod(Player0, 4) + 1).
 
 firstPlayer(Hands, Player) :-
 	firstPlayer(Hands, 1, Player).
-
 	
 firstPlayer([], Player, Player).
-
 firstPlayer([Hand|Hs], Player0, Player) :-
 	(member((6,6), Hand) -> firstPlayer([], Player0, Player); 
  		NextPlayer is (Player0 + 1), 
  		firstPlayer(Hs, NextPlayer, Player)).
 
-
 transferPiecesToHands_(Pieces, _, _, Hands, Hands, Pieces).
 
-transferPiecesToHands(Pieces, TotalPieces, Hand, Hands, H, P) :-
+transferPiecesToHands(Pieces, TotalPieces, Hand, Hands, HandsResult, PiecesResult) :-
 	random(0, TotalPieces, Index), 
 	nth0(Index, Pieces, RandomPiece),
 	delete(Pieces, RandomPiece, NewPieces),
 	append([RandomPiece], Hand, NewHand),
 	NewTotalPieces is (TotalPieces - 1),
 	length(NewHand, HandLength),
-	((HandLength =:= 7) -> 	append([NewHand], Hands, NewHands), transferPiecesToHands_(NewPieces, NewTotalPieces, NewHand, NewHands, H, P);
-		transferPiecesToHands(NewPieces, NewTotalPieces, NewHand, Hands, H, P)).
-
+	((HandLength =:= 7) -> append([NewHand], Hands, NewHands), transferPiecesToHands_(NewPieces, NewTotalPieces, NewHand, NewHands, HandsResult, PiecesResult);
+		transferPiecesToHands(NewPieces, NewTotalPieces, NewHand, Hands, HandsResult, PiecesResult)).
 
 startGame(Hands) :-
 	write('Escolha a quantidade de jogadores na partida [1-4]: '),
@@ -293,19 +303,19 @@ startGame(Hands) :-
  	atom_number(A1, TotalHumanPlayers),
  	((TotalHumanPlayers >= 0), (TotalHumanPlayers =< 4)) ->
 		firstMove(Hands, NewHands, Player),
-		nextMove(NewHands, Player, TotalHumanPlayers, [(6,6)]);
+		PassedMoves is (0),
+		nextMove(NewHands, Player, TotalHumanPlayers, PassedMoves, [(6,6)]);
 		writeln('Quantidade de jogadores inválida. Digite valores do intervalo [1,4].'),
 		startGame(Hands).
 		
-
-startGame :-
+configureGame :-
 	getDominoPieces(AllPieces),
 	transferPiecesToHands(AllPieces, 28, [], [], Hands, AllPieces1),
 	transferPiecesToHands(AllPieces1, 21, [], Hands, Hands1, AllPieces2),
 	transferPiecesToHands(AllPieces2, 14, [], Hands1, Hands2, AllPieces3),
-	transferPiecesToHands(AllPieces3, 7, [], Hands2, Hands3, _),
+	transferPiecesToHands(AllPieces3, 7, [], Hands2, HandsFinal, _),
 
-	startGame(Hands3), nl.
+	startGame(HandsFinal), nl.
 
 
 printMenu(Option) :-
@@ -319,8 +329,7 @@ printMenu(Option) :-
 	
 
 :- initialization main.
-
 main :-
 	printMenu(Option),
-	((Option =:= "1") -> writeln('JOGO INICIADO'), startGame; writeln('ATÉ LOGO')),
+	((Option =:= "1") -> configureGame; writeln('ATÉ LOGO')),
 	halt(0).
