@@ -212,7 +212,7 @@ nextMove(Hands, Player, TotalHumanPlayers, PassedMoves, Table):-
 	write('Vez do jogador '),
 	writeln(Player), nl,
 	getHand(Hands, Player, Hand),
-	hasPiece([], Table),
+	hasPiece(Hand, Table),
 	move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable),
 	updateHands(Hand, NewHand, Hands, NewHands),
 	continueGame(NewHand, Player, NewTable),
@@ -235,17 +235,45 @@ nextMove(Hands, Player, TotalHumanPlayers, PassedMoves, Table):-
 nextMove(Hands, Player, TotalHumanPlayers, PassedMoves, Table):-
 	tty_clear,
 	writeln('Jogo empatado durante a partida, na contagem dos pontos...'),
+	gameTied(Hands, Winner),
+	write('Jogador '),
+	write(Winner),
+	writeln(' é o vencedor!!!'),
 	halt(0).
 
-gameTied(Hands):-
+sumHandPieces(List, Result):-
+    sumHandPieces(List, 0, Result).
+
+sumHandPieces([], CurrentResult, CurrentResult).
+sumHandPieces([Head|Tail], CurrentResult, Result):-
+	getPieceSide(Head, "l", LP),
+	getPieceSide(Head, "r", RP),
+    NewCurrentResult is (CurrentResult + LP + RP),
+    sumHandPieces(Tail, NewCurrentResult, Result).
+
+getIndex(List, Elem, IndexElem):- getIndex(List, Elem, 0, IndexElem).
+
+getIndex([], Elem, CurrentIndex, CurrentIndex).
+getIndex([Head|Tail], Elem, CurrentIndex, IndexElem):-
+	Head =:= Elem -> getIndex([], Elem, CurrentIndex, IndexElem); NewCurrentIndex is (CurrentIndex + 1), getIndex(Tail, Elem, NewCurrentIndex, IndexElem).
+
+gameTied(Hands, Winner):-
 	nth1(1, Hands, Hand1),
 	nth1(2, Hands, Hand2),
 	nth1(3, Hands, Hand3),
 	nth1(4, Hands, Hand4),
-	showHand(Hand1),
-	showHand(Hand2),
-	showHand(Hand3),
-	showHand(Hand4),
+	sumHandPieces(Hand1, TotalHand1),
+	sumHandPieces(Hand2, TotalHand2),
+	sumHandPieces(Hand3, TotalHand3),
+	sumHandPieces(Hand4, TotalHand4),
+	append([], [TotalHand1], List1),
+	append(List1, [TotalHand2], List2),
+	append(List2, [TotalHand3], List3),
+	append(List3, [TotalHand4], FinalList),
+	max_list(FinalList, MaxElem),
+	getIndex(FinalList, MaxElem, Index),
+	Winner is (Index + 1).
+
 
 finishGame(Player, Table):-
 	tty_clear,
