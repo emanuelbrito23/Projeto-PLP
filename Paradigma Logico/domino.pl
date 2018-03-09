@@ -175,7 +175,118 @@ move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable):-
 	write('Jogador '),
 	write(Player),
 	write(' realizando jogada'),
-	sleep(2).
+	sleep(2),
+	validPiecesRobot(Hand,Table,Val),
+	existCarrocaValid(Val, Carrocas),
+	length(Carrocas, NumberCarrocas),
+	( NumberCarrocas @>0 ->
+		max_PieceRobot(Carrocas, Max);
+		max_PieceRobot(Val, Max)),
+	playRobot(Hand, Max, Table, NewHand, NewTable).
+
+playRobot(Hand, Piece, Table, NewHand, NewTable):-
+	last(Table, LastTablePiece),
+	getPieceSide(Piece, "r", RPiece),
+	getPieceSide(Piece, "l", LPiece),
+	getPieceSide(LastTablePiece, "r", RTablePiece),
+	nth1(1, Table, FirstTablePiece),
+	getPieceSide(FirstTablePiece, "l", LTablePiece),
+	((RPiece =:= LTablePiece; LPiece =:= LTablePiece)  ->
+		playPieceRobot(Hand, Piece, "l", Table, NewHand, NewTable);
+		playPieceRobot(Hand, Piece, "r", Table, NewHand, NewTable)).
+	
+
+playPieceRobot(Hand, Piece, "l", [TPiece|TablePieces], NewHand, NewTable):-
+	getPieceSide(Piece, "r", RHandPiece),
+	getPieceSide(TPiece, "l", LTablePiece),
+	RHandPiece =:= LTablePiece,
+	append([Piece], [TPiece|TablePieces], NewTable),
+	updateTable(Piece, "l", [TPiece|TablePieces], NewTable),
+	removePiece(Hand, Piece, NewHand).
+
+playPieceRobot(Hand, Piece, "l", [TPiece|TablePieces], NewHand, NewTable):-
+	getPieceSide(Piece, "l", LHandPiece),
+	getPieceSide(TPiece, "l", LTablePiece),
+	LHandPiece =:= LTablePiece,
+	getPieceSide(Piece, "r", RHandPiece),
+	append([(RHandPiece, LHandPiece)], [TPiece|TablePieces], NewTable),
+	updateTable((RHandPiece, LHandPiece), "l", [TPiece|TablePieces], NewTable),
+	removePiece(Hand, Piece, NewHand).
+
+playPieceRobot(Hand, Piece, "r", Table, NewHand, NewTable):-
+	getPieceSide(Piece, "l", LHandPiece),
+	last(Table, TPiece),
+	getPieceSide(TPiece, "r", RTablePiece),
+	LHandPiece =:= RTablePiece,
+	updateTable(Piece, "r", Table, NewTable),
+	removePiece(Hand, Piece, NewHand).
+
+playPieceRobot(Hand, Piece, "r", Table, NewHand, NewTable):-
+	getPieceSide(Piece, "r", RHandPiece),
+	last(Table, TPiece),
+	getPieceSide(TPiece, "r", RTablePiece),
+	RHandPiece =:= RTablePiece,
+	getPieceSide(Piece, "l", LHandPiece),
+	updateTable((RHandPiece, LHandPiece), "r", Table, NewTable),
+	removePiece(Hand, Piece, NewHand).
+
+
+max_PieceRobot([Piece|Hand],Max):-
+	max_PieceRobot(Hand, Piece, Max).
+
+max_PieceRobot([], Max, Max).
+max_PieceRobot([Piece|Hand], Max0, Max) :-
+	Max1 is max_Piece(Piece, Max0),
+	max_PieceRobot(Hand, Max1, Max).
+
+
+max_Piece(Piece1, Piece2, Max):-
+	max_side(Piece1, M1),
+	max_side(Piece2, M2),
+	(M1 @>= M2 -> 
+		Max is Piece1;
+		Max is Piece2).
+
+max_side(Piece, Max):-
+	getPieceSide(Piece, "l", Left), 
+	getPieceSide(Piece, "r", Right),
+	(Left @>= Right -> 
+		Max is Left;
+		Max is Right).
+
+
+validPiecesRobot(Hand,Table,V):-
+	validPieces(Hand,Table,[],V).
+
+validPieces([],_,_,_).
+validPieces([Piece|Hand],Table,X,N):- validPiece(Piece,Table), append([Piece],X,N), validPieces(Hand,Table,X,N).
+validPieces([Piece|Hand],Table,X,N):- validPieces(Hand,Table,X,N).
+
+
+validPiece(Piece,Table):-
+	last(Table, LastTablePiece),
+	getPieceSide(Piece, "r", RPiece),	
+	getPieceSide(LastTablePiece, "r", RTablePiece),
+	nth1(1, Table, FirstTablePiece),
+	getPieceSide(Piece, "l", LPiece),
+	getPieceSide(FirstTablePiece, "l", LTablePiece),
+	(RPiece =:= LTablePiece ;
+	  RPiece =:= RTablePiece;
+	  LPiece =:= LTablePiece;
+	  LPiece =:= RTablePiece).
+
+
+existCarrocaValid(Hand,D):- 
+	carrocaValid(Hand,[],D).
+
+carrocaValid([],C,C).
+carrocaValid([Piece|Hand],M,C):- isCarroca(Piece), append([Piece],M,C), carrocaValid(Hand,M,C).
+carrocaValid([Piece|Hand],M,C):- carrocaValid(Hand,M,C).
+
+isCarroca(Piece):- 
+	getPieceSide(Piece, "l", N), 
+	getPieceSide(Piece, "r", M), 
+	N =:= M.
 
 
 getHand(Hands, Player, Hand):-
