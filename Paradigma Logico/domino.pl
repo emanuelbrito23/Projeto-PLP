@@ -174,7 +174,7 @@ move(Hand, Player, TotalHumanPlayers, Table, NewHand, NewTable):-
 	isRobot(Player, TotalHumanPlayers),
 	write('Jogador '),
 	write(Player),
-	write(' realizando jogada'),
+	write(' realizando jogada...'),
 	sleep(2),
 	validPiecesRobot(Hand,Table,Val),
 	existCarrocaValid(Val, Carrocas),
